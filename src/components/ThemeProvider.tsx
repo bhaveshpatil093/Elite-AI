@@ -1,90 +1,71 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark" | "system";
+type Theme = "dark" | "light" | "system";
 
-interface ThemeContextType {
+type ThemeProviderProps = {
+  children: React.ReactNode;
+  defaultTheme?: Theme;
+  storageKey?: string;
+};
+
+type ThemeProviderState = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  resolvedTheme: "light" | "dark";
-}
+};
 
-const ThemeContext = createContext<ThemeContextType>({
-  theme: "system",
-  setTheme: () => {},
-  resolvedTheme: "light",
-});
+const initialState: ThemeProviderState = {
+  theme: "light",
+  setTheme: () => null,
+};
 
-export const useTheme = () => useContext(ThemeContext);
+const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
-interface ThemeProviderProps {
-  children: React.ReactNode;
-}
+export function ThemeProvider({
+  children,
+  defaultTheme = "light",
+  storageKey = "vite-ui-theme",
+  ...props
+}: ThemeProviderProps) {
+  const [theme, setTheme] = useState<Theme>(
+    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+  );
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Check if user has previously selected a theme
-    const savedTheme = localStorage.getItem("theme") as Theme;
-    if (savedTheme && (savedTheme === "light" || savedTheme === "dark" || savedTheme === "system")) {
-      return savedTheme;
-    }
-    
-    return "system";
-  });
-
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
-
-  // Handle system preference changes
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    
-    const handleChange = () => {
-      if (theme === "system") {
-        const newTheme = mediaQuery.matches ? "dark" : "light";
-        setResolvedTheme(newTheme);
-        updateDocumentClass(newTheme);
-      }
-    };
-    
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme]);
-
-  // Update the theme when it changes
-  useEffect(() => {
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      setResolvedTheme(systemTheme);
-      updateDocumentClass(systemTheme);
-    } else {
-      setResolvedTheme(theme as "light" | "dark");
-      updateDocumentClass(theme as "light" | "dark");
-    }
-    
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  const updateDocumentClass = (theme: "light" | "dark") => {
     const root = window.document.documentElement;
-    
-    // Remove the previous theme class
     root.classList.remove("light", "dark");
-    
-    // Add the current theme class
+
+    if (theme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+        .matches
+        ? "dark"
+        : "light";
+      root.classList.add(systemTheme);
+      return;
+    }
+
     root.classList.add(theme);
+  }, [theme]);
+
+  const value = {
+    theme,
+    setTheme: (theme: Theme) => {
+      localStorage.setItem(storageKey, theme);
+      setTheme(theme);
+    },
   };
 
   return (
-    <ThemeContext.Provider 
-      value={{ 
-        theme, 
-        setTheme, 
-        resolvedTheme 
-      }}
-    >
+    <ThemeProviderContext.Provider {...props} value={value}>
       {children}
-    </ThemeContext.Provider>
+    </ThemeProviderContext.Provider>
   );
-};
+}
 
-export default ThemeProvider;
+export const useTheme = () => {
+  const context = useContext(ThemeProviderContext);
+
+  if (context === undefined)
+    throw new Error("useTheme must be used within a ThemeProvider");
+
+  return context;
+};

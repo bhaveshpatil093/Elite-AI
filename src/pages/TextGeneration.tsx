@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import OutputDisplay from "@/components/OutputDisplay";
 import { huggingfaceService } from "@/services/huggingfaceService";
 import { openaiService } from "@/services/openaiService";
+import { deepseekService } from "@/services/deepseekService";
 import { getApiKey, handleSaveApiKey } from "@/lib/apiKeys";
 
 interface ApiModelOption {
@@ -34,7 +35,9 @@ const TextGeneration = () => {
       models: [
         { id: "meta-llama/Llama-2-7b-chat-hf", name: "Llama 2 7B Chat" },
         { id: "meta-llama/Llama-2-13b-chat-hf", name: "Llama 2 13B Chat" },
-        { id: "mistralai/Mistral-7B-Instruct-v0.1", name: "Mistral 7B Instruct" }
+        { id: "mistralai/Mistral-7B-Instruct-v0.1", name: "Mistral 7B Instruct" },
+        { id: "google/gemma-7b-it", name: "Gemma 7B Instruct" },
+        { id: "google/gemma-2b-it", name: "Gemma 2B Instruct" }
       ]
     },
     {
@@ -43,15 +46,22 @@ const TextGeneration = () => {
         { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo" },
         { id: "gpt-4", name: "GPT-4" }
       ]
+    },
+    {
+      provider: "deepseek",
+      models: [
+        { id: "deepseek-chat", name: "DeepSeek Chat" },
+        { id: "deepseek-coder", name: "DeepSeek Coder" }
+      ]
     }
   ];
 
   useEffect(() => {
-    const storedApiKey = getApiKey('huggingface');
+    const storedApiKey = getApiKey(selectedProvider);
     if (storedApiKey) {
       setApiKey(storedApiKey);
     }
-  }, []);
+  }, [selectedProvider]);
 
   const handleProviderChange = (provider: string) => {
     setSelectedProvider(provider);
@@ -60,12 +70,14 @@ const TextGeneration = () => {
       setSelectedModel('meta-llama/Llama-2-7b-chat-hf');
     } else if (provider === 'openai') {
       setSelectedModel('gpt-3.5-turbo');
+    } else if (provider === 'deepseek') {
+      setSelectedModel('deepseek-chat');
     }
   };
 
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setApiKey(e.target.value);
-    handleSaveApiKey('huggingface', e.target.value);
+    handleSaveApiKey(selectedProvider, e.target.value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,7 +87,7 @@ const TextGeneration = () => {
 
     try {
       if (!apiKey) {
-        throw new Error('Hugging Face API key is required');
+        throw new Error(`${selectedProvider} API key is required`);
       }
 
       let response;
@@ -87,12 +99,20 @@ const TextGeneration = () => {
           temperature: temperature,
           apiKey: apiKey
         });
-      } else {
+      } else if (selectedProvider === 'openai') {
         response = await openaiService.generateText({
           prompt: prompt,
           model: selectedModel,
           maxTokens: maxTokens,
           temperature: temperature
+        });
+      } else if (selectedProvider === 'deepseek') {
+        response = await deepseekService.generateText({
+          prompt: prompt,
+          model: selectedModel,
+          maxTokens: maxTokens,
+          temperature: temperature,
+          apiKey: apiKey
         });
       }
 
@@ -118,6 +138,7 @@ const TextGeneration = () => {
             <SelectContent>
               <SelectItem value="huggingface">Hugging Face</SelectItem>
               <SelectItem value="openai">OpenAI</SelectItem>
+              <SelectItem value="deepseek">DeepSeek</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -144,7 +165,7 @@ const TextGeneration = () => {
           <Label htmlFor="apiKey">API Key</Label>
           <Textarea
             id="apiKey"
-            placeholder="Enter your API key"
+            placeholder={`Enter your ${selectedProvider} API key`}
             value={apiKey}
             onChange={handleApiKeyChange}
             className="min-h-[120px]"
