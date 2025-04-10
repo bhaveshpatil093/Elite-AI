@@ -140,53 +140,57 @@ const Settings = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="api-keys" className="space-y-4">
-            <h2 className="text-xl font-semibold">API Keys</h2>
-            
-            <p className="text-muted-foreground mb-4">
-              Configure your API keys to use the AI services. Your keys are stored securely in your browser's local storage and are not sent to our servers.
-            </p>
-            
-            <Tabs defaultValue="all">
-              <TabsList className="mb-4">
-                <TabsTrigger value="all">All Providers</TabsTrigger>
-                <TabsTrigger value="text">Text Generation</TabsTrigger>
-                <TabsTrigger value="image">Image Generation</TabsTrigger>
-                <TabsTrigger value="voice">Voice Generation</TabsTrigger>
-              </TabsList>
+          <TabsContent value="api-keys">
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">API Keys</h2>
               
-              <TabsContent value="all" className="space-y-6">
-                <ApiKeySelector 
-                  providers={apiProviders}
-                  onSaveApiKey={handleSaveApiKey}
-                  getApiKey={getApiKey}
-                />
-              </TabsContent>
+              <p className="text-muted-foreground mb-4">
+                Configure your API keys to use the AI services. Your keys are stored securely in your browser's local storage and are not sent to our servers.
+              </p>
               
-              <TabsContent value="text" className="space-y-6">
-                <ApiKeySelector 
-                  providers={textGenProviders}
-                  onSaveApiKey={handleSaveApiKey}
-                  getApiKey={getApiKey}
-                />
-              </TabsContent>
-              
-              <TabsContent value="image" className="space-y-6">
-                <ApiKeySelector 
-                  providers={imageGenProviders}
-                  onSaveApiKey={handleSaveApiKey}
-                  getApiKey={getApiKey}
-                />
-              </TabsContent>
-              
-              <TabsContent value="voice" className="space-y-6">
-                <ApiKeySelector 
-                  providers={voiceGenProviders}
-                  onSaveApiKey={handleSaveApiKey}
-                  getApiKey={getApiKey}
-                />
-              </TabsContent>
-            </Tabs>
+              <div className="card-glass p-4 rounded-lg">
+                <Tabs defaultValue="all" className="w-full">
+                  <TabsList className="w-full justify-start mb-4">
+                    <TabsTrigger value="all">All Providers</TabsTrigger>
+                    <TabsTrigger value="text">Text Generation</TabsTrigger>
+                    <TabsTrigger value="image">Image Generation</TabsTrigger>
+                    <TabsTrigger value="voice">Voice Generation</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="all">
+                    <ApiKeySelector 
+                      providers={apiProviders}
+                      onSaveApiKey={handleSaveApiKey}
+                      getApiKey={getApiKey}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="text">
+                    <ApiKeySelector 
+                      providers={textGenProviders}
+                      onSaveApiKey={handleSaveApiKey}
+                      getApiKey={getApiKey}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="image">
+                    <ApiKeySelector 
+                      providers={imageGenProviders}
+                      onSaveApiKey={handleSaveApiKey}
+                      getApiKey={getApiKey}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="voice">
+                    <ApiKeySelector 
+                      providers={voiceGenProviders}
+                      onSaveApiKey={handleSaveApiKey}
+                      getApiKey={getApiKey}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
