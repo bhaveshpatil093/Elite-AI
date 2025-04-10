@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Select, 
   SelectContent, 
@@ -9,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import APIKeyInput from "@/components/APIKeyInput";
+import { toast } from "sonner";
 
 export interface ApiProvider {
   id: string;
@@ -28,13 +28,27 @@ const ApiKeySelector: React.FC<ApiKeySelectorProps> = ({
   onSaveApiKey,
   getApiKey,
 }) => {
-  const [selectedProvider, setSelectedProvider] = useState<string>(providers[0]?.id || "");
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
+
+  useEffect(() => {
+    if (providers.length > 0) {
+      setSelectedProvider(providers[0].id);
+    }
+  }, [providers]);
 
   const handleProviderChange = (value: string) => {
     setSelectedProvider(value);
   };
 
   const currentProvider = providers.find(provider => provider.id === selectedProvider);
+
+  if (providers.length === 0) {
+    return (
+      <div className="text-center p-4 text-muted-foreground">
+        No API providers available
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
