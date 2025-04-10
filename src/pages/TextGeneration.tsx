@@ -2,21 +2,19 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import OutputDisplay from "@/components/OutputDisplay";
-import LoadingSpinner from "@/components/LoadingSpinner";
-import { geminiService } from "@/services/geminiService";
-import { openaiService } from "@/services/openaiService";
-import { claudeService } from "@/services/claudeService";
 import { huggingfaceService } from "@/services/huggingfaceService";
-import { toast } from "sonner";
-import { Send } from "lucide-react";
+import { openaiService } from "@/services/openaiService";
+import { getApiKey, handleSaveApiKey } from "@/lib/apiKeys";
 
 interface ApiModelOption {
   provider: string;
-  id: string;
-  name: string;
+  models: {
+    id: string;
+    name: string;
+  }[];
 }
 
 const TextGeneration = () => {
@@ -65,7 +63,7 @@ const TextGeneration = () => {
     }
   };
 
-  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleApiKeyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setApiKey(e.target.value);
     handleSaveApiKey('huggingface', e.target.value);
   };
@@ -94,8 +92,7 @@ const TextGeneration = () => {
           prompt: prompt,
           model: selectedModel,
           maxTokens: maxTokens,
-          temperature: temperature,
-          apiKey: apiKey
+          temperature: temperature
         });
       }
 
@@ -108,86 +105,97 @@ const TextGeneration = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <div className="card-glass p-6">
-        <h1 className="text-2xl font-bold mb-4">Text Generation</h1>
-        
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="model">Select Model</Label>
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a model" />
-              </SelectTrigger>
-              <SelectContent>
-                {modelOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    {option.name}
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Text Generation</h1>
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="provider">Provider</Label>
+          <Select value={selectedProvider} onValueChange={handleProviderChange}>
+            <SelectTrigger id="provider">
+              <SelectValue placeholder="Select a provider" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="huggingface">Hugging Face</SelectItem>
+              <SelectItem value="openai">OpenAI</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="model">Model</Label>
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger id="model">
+              <SelectValue placeholder="Select a model" />
+            </SelectTrigger>
+            <SelectContent>
+              {modelOptions
+                .find(option => option.provider === selectedProvider)
+                ?.models.map(model => (
+                  <SelectItem key={model.id} value={model.id}>
+                    {model.name}
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="prompt">Prompt</Label>
-            <Textarea
-              id="prompt"
-              placeholder="Enter your prompt here..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="temperature">Temperature: {temperature}</Label>
-              <Slider
-                id="temperature"
-                min={0}
-                max={1}
-                step={0.1}
-                value={[temperature]}
-                onValueChange={(value) => setTemperature(value[0])}
-              />
-            </div>
-            <div>
-              <Label htmlFor="maxTokens">Max Tokens: {maxTokens}</Label>
-              <Slider
-                id="maxTokens"
-                min={100}
-                max={4000}
-                step={100}
-                value={[maxTokens]}
-                onValueChange={(value) => setMaxTokens(value[0])}
-              />
-            </div>
-          </div>
-
-          <Button
-            onClick={handleSubmit}
-            disabled={isLoading}
-            className="w-full"
-          >
-            {isLoading ? (
-              <LoadingSpinner />
-            ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                Generate
-              </>
-            )}
-          </Button>
+            </SelectContent>
+          </Select>
         </div>
-      </div>
 
-      {result && (
-        <div className="card-glass p-6">
-          <h2 className="text-xl font-semibold mb-4">Generated Text</h2>
-          <OutputDisplay content={result} />
+        <div>
+          <Label htmlFor="apiKey">API Key</Label>
+          <Textarea
+            id="apiKey"
+            placeholder="Enter your API key"
+            value={apiKey}
+            onChange={handleApiKeyChange}
+            className="min-h-[120px]"
+          />
         </div>
-      )}
+
+        <div>
+          <Label htmlFor="prompt">Prompt</Label>
+          <Textarea
+            id="prompt"
+            placeholder="Enter your prompt here..."
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            className="min-h-[200px]"
+          />
+        </div>
+
+        <div>
+          <Label>Temperature: {temperature}</Label>
+          <Slider
+            value={[temperature]}
+            onValueChange={(value) => setTemperature(value[0])}
+            min={0}
+            max={1}
+            step={0.1}
+          />
+        </div>
+
+        <div>
+          <Label>Max Tokens: {maxTokens}</Label>
+          <Slider
+            value={[maxTokens]}
+            onValueChange={(value) => setMaxTokens(value[0])}
+            min={100}
+            max={2000}
+            step={100}
+          />
+        </div>
+
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? "Generating..." : "Generate Text"}
+        </Button>
+      </form>
+
+      {result ? (
+        <OutputDisplay title="Generated Text" content={result} />
+      ) : error ? (
+        <div className="text-red-500 mt-4">
+          {error}
+        </div>
+      ) : null}
     </div>
   );
 };

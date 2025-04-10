@@ -1,74 +1,52 @@
 import { toast } from "sonner";
 
 // Types for Hugging Face API
-export interface HuggingFaceTextGenerationParams {
+interface HuggingFaceTextGenerationOptions {
   prompt: string;
+  model: string;
   maxTokens?: number;
   temperature?: number;
-  model?: string;
+  apiKey: string;
 }
 
-const HUGGINGFACE_API_KEY = 'hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'; // Default API key
 const HUGGINGFACE_API_URL = 'https://api-inference.huggingface.co/models';
 
 class HuggingFaceService {
-  private apiKey: string | null = null;
-  
-  constructor() {
-    // Try to get API key from localStorage if previously saved
-    this.apiKey = localStorage.getItem('huggingface_api_key');
-  }
-
-  setApiKey(apiKey: string) {
-    this.apiKey = apiKey;
-    localStorage.setItem('huggingface_api_key', apiKey);
-  }
-
-  getApiKey(): string | null {
-    return this.apiKey;
-  }
-
-  async generateText(params: HuggingFaceTextGenerationParams): Promise<string> {
-    if (!this.apiKey) {
-      toast.error("Please set your Hugging Face API key in settings");
-      throw new Error("API key not set");
-    }
+  async generateText(options: HuggingFaceTextGenerationOptions): Promise<string> {
+    const {
+      prompt,
+      model,
+      maxTokens = 800,
+      temperature = 0.7,
+      apiKey
+    } = options;
 
     try {
-      const model = params.model || "meta-llama/Llama-2-7b-chat-hf";
-      const response = await fetch(
-        `https://api-inference.huggingface.co/models/${model}`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${this.apiKey}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            inputs: params.prompt,
-            parameters: {
-              max_new_tokens: params.maxTokens || 800,
-              temperature: params.temperature || 0.7,
-              top_p: 0.95,
-              top_k: 50,
-              repetition_penalty: 1.1
-            }
-          })
-        }
-      );
+      const response = await fetch(`${HUGGINGFACE_API_URL}/${model}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: maxTokens,
+            temperature: temperature,
+            return_full_text: false
+          }
+        })
+      });
 
       if (!response.ok) {
-        const error = await response.json();
-        const errorMessage = error.error || "Failed to generate text";
-        toast.error(errorMessage);
-        throw new Error(errorMessage);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate text');
       }
 
       const data = await response.json();
-      return data[0]?.generated_text || "";
+      return data[0]?.generated_text || '';
     } catch (error) {
-      console.error("Error generating text:", error);
-      toast.error("Failed to generate text. Please try again.");
+      console.error('Error generating text with Hugging Face:', error);
       throw error;
     }
   }
