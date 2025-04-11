@@ -9,7 +9,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { geminiService } from "@/services/geminiService";
 import { openaiService } from "@/services/openaiService";
 import { huggingfaceService } from "@/services/huggingfaceService";
-import { clipdropService } from "@/services/clipdropService.ts";
+import { clipdropService } from "@/services/clipdropService";
 import { toast } from "sonner";
 import { ImageIcon } from "lucide-react";
 
