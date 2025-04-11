@@ -9,6 +9,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { geminiService } from "@/services/geminiService";
 import { openaiService } from "@/services/openaiService";
 import { huggingfaceService } from "@/services/huggingfaceService";
+import { clipdropService } from "@/services/clipdropService";
 import { toast } from "sonner";
 import { ImageIcon } from "lucide-react";
 
@@ -36,6 +37,9 @@ const ImageGeneration = () => {
     { provider: "huggingface", id: "huggingface:stable-diffusion-xl", name: "Stable Diffusion XL" },
     { provider: "huggingface", id: "huggingface:stable-diffusion-v1-5", name: "Stable Diffusion v1.5" },
     
+    // Clipdrop models
+    { provider: "clipdrop", id: "clipdrop:stable-diffusion", name: "Clipdrop Stable Diffusion" },
+    
     // Gemini (placeholder)
     { provider: "gemini", id: "gemini:image", name: "Gemini (Placeholder)" },
   ];
@@ -57,6 +61,9 @@ const ImageGeneration = () => {
       return;
     } else if (provider === "huggingface" && !huggingfaceService.getApiKey()) {
       toast.error("Please set your Hugging Face API key in settings");
+      return;
+    } else if (provider === "clipdrop" && !clipdropService.getApiKey()) {
+      toast.error("Please set your Clipdrop API key in settings");
       return;
     }
 
@@ -92,6 +99,15 @@ const ImageGeneration = () => {
           numInferenceSteps: 50,
           guidanceScale: 7.5,
         });
+      } else if (provider === "clipdrop") {
+        response = await clipdropService.generateImage({
+          prompt,
+          negativePrompt,
+          width,
+          height,
+          numInferenceSteps: 50,
+          guidanceScale: 7.5,
+        });
       }
       
       setImageUrl(response);
@@ -104,10 +120,10 @@ const ImageGeneration = () => {
   };
 
   // Determine if we should show size controls based on selected provider
-  const showSizeControls = selectedModel.startsWith("huggingface:");
+  const showSizeControls = selectedModel.startsWith("huggingface:") || selectedModel.startsWith("clipdrop:");
   
   // Determine if we should show negative prompt based on provider
-  const showNegativePrompt = selectedModel.startsWith("huggingface:");
+  const showNegativePrompt = selectedModel.startsWith("huggingface:") || selectedModel.startsWith("clipdrop:");
 
   return (
     <div className="space-y-6 animate-fade-in">

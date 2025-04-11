@@ -10,10 +10,19 @@ import { openaiService } from "@/services/openaiService";
 import { claudeService } from "@/services/claudeService";
 import { stableDiffusionService } from "@/services/stableDiffusionService";
 import { huggingfaceService } from "@/services/huggingfaceService";
+import { clipdropService } from "@/services/clipdropService";
 import { Moon, Sun, Zap } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { set } from "@/lib/storage";
 
 const Settings = () => {
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>("");
 
   const apiProviders: ApiProvider[] = [
     {
@@ -45,6 +54,12 @@ const Settings = () => {
       name: "Hugging Face",
       description: "Access to various open-source models including Llama 2 and Mistral.",
       docsUrl: "https://huggingface.co/settings/tokens",
+    },
+    {
+      id: "clipdrop",
+      name: "Clipdrop",
+      description: "Clipdrop API for image generation.",
+      docsUrl: "https://clipdrop.co/api",
     }
   ];
 
@@ -64,18 +79,25 @@ const Settings = () => {
     switch (providerId) {
       case "gemini":
         geminiService.setApiKey(apiKey);
+        set("geminiApiKey", apiKey);
         break;
       case "elevenlabs":
         elevenLabsService.setApiKey(apiKey);
         break;
       case "openai":
         openaiService.setApiKey(apiKey);
+        set("openaiApiKey", apiKey);
         break;
       case "claude":
         claudeService.setApiKey(apiKey);
         break;
       case "huggingface":
         huggingfaceService.setApiKey(apiKey);
+        set("huggingfaceApiKey", apiKey);
+        break;
+      case "clipdrop":
+        clipdropService.setApiKey(apiKey);
+        set("clipdropApiKey", apiKey);
         break;
     }
   };
@@ -92,8 +114,26 @@ const Settings = () => {
         return claudeService.getApiKey();
       case "huggingface":
         return huggingfaceService.getApiKey();
+      case "clipdrop":
+        return clipdropService.getApiKey();
       default:
         return null;
+    }
+  };
+
+  const handleSave = () => {
+    if (!selectedProvider || !apiKey) {
+      toast.error("Please select a provider and enter an API key");
+      return;
+    }
+
+    try {
+      handleSaveApiKey(selectedProvider, apiKey);
+      toast.success("API key saved successfully");
+      setApiKey("");
+    } catch (error) {
+      console.error("Error saving API key:", error);
+      toast.error("Failed to save API key");
     }
   };
 
@@ -223,6 +263,45 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>API Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="provider">Select Provider</Label>
+            <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+              <SelectTrigger id="provider">
+                <SelectValue placeholder="Select an API provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gemini">Google Gemini</SelectItem>
+                <SelectItem value="openai">OpenAI</SelectItem>
+                <SelectItem value="huggingface">Hugging Face</SelectItem>
+                <SelectItem value="clipdrop">Clipdrop</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedProvider && (
+            <div className="space-y-2">
+              <Label htmlFor="apiKey">API Key</Label>
+              <Input
+                id="apiKey"
+                type="password"
+                placeholder={`Enter your ${selectedProvider} API key`}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </div>
+          )}
+
+          <Button onClick={handleSave} disabled={!selectedProvider || !apiKey}>
+            Save API Key
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };
