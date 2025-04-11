@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +8,7 @@ import OutputDisplay from "@/components/OutputDisplay";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { geminiService } from "@/services/geminiService";
 import { openaiService } from "@/services/openaiService";
-import { stableDiffusionService } from "@/services/stableDiffusionService";
+import { huggingfaceService } from "@/services/huggingfaceService";
 import { toast } from "sonner";
 import { ImageIcon } from "lucide-react";
 
@@ -33,8 +32,9 @@ const ImageGeneration = () => {
     { provider: "openai", id: "openai:dall-e-3", name: "DALL-E 3" },
     { provider: "openai", id: "openai:dall-e-2", name: "DALL-E 2" },
     
-    // Stable Diffusion models
+    // Hugging Face models
     { provider: "huggingface", id: "huggingface:stable-diffusion-xl", name: "Stable Diffusion XL" },
+    { provider: "huggingface", id: "huggingface:stable-diffusion-v1-5", name: "Stable Diffusion v1.5" },
     
     // Gemini (placeholder)
     { provider: "gemini", id: "gemini:image", name: "Gemini (Placeholder)" },
@@ -55,7 +55,7 @@ const ImageGeneration = () => {
     } else if (provider === "openai" && !openaiService.getApiKey()) {
       toast.error("Please set your OpenAI API key in settings");
       return;
-    } else if (provider === "huggingface" && !stableDiffusionService.getApiKey()) {
+    } else if (provider === "huggingface" && !huggingfaceService.getApiKey()) {
       toast.error("Please set your Hugging Face API key in settings");
       return;
     }
@@ -85,17 +85,19 @@ const ImageGeneration = () => {
           style: "vivid",
         });
       } else if (provider === "huggingface") {
-        response = await stableDiffusionService.generateImage({
+        response = await huggingfaceService.generateImage({
           prompt,
+          model,
           negativePrompt,
-          width,
-          height,
+          numInferenceSteps: 50,
+          guidanceScale: 7.5,
         });
       }
       
       setImageUrl(response);
     } catch (error) {
       console.error("Error generating image:", error);
+      toast.error("Failed to generate image. Please check your API key and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -199,44 +201,37 @@ const ImageGeneration = () => {
                   <SelectValue placeholder="Select image size" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1024x1024">1024×1024</SelectItem>
-                  <SelectItem value="1792x1024">1792×1024</SelectItem>
-                  <SelectItem value="1024x1792">1024×1792</SelectItem>
+                  <SelectItem value="1024x1024">1024x1024</SelectItem>
+                  <SelectItem value="1792x1024">1792x1024</SelectItem>
+                  <SelectItem value="1024x1792">1024x1792</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
 
           <Button 
-            onClick={handleGenerate} 
-            disabled={isLoading || !prompt.trim()}
+            onClick={handleGenerate}
+            disabled={isLoading}
             className="w-full"
           >
-            <ImageIcon className="mr-2 h-4 w-4" />
-            Generate Image
+            {isLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <>
+                <ImageIcon className="w-4 h-4 mr-2" />
+                Generate Image
+              </>
+            )}
           </Button>
         </div>
       </div>
 
-      {/* Results Section */}
-      {isLoading ? (
-        <LoadingSpinner text="Generating image..." />
-      ) : imageUrl ? (
-        <OutputDisplay 
-          title="Generated Image" 
-          contentType="image"
-          content={imageUrl}
-          fileName="generated-image"
-        >
-          <div className="flex justify-center">
-            <img 
-              src={imageUrl} 
-              alt="Generated" 
-              className="rounded-lg max-h-[500px] w-auto object-contain" 
-            />
-          </div>
-        </OutputDisplay>
-      ) : null}
+      {imageUrl && (
+        <div className="card-glass p-6 rounded-xl">
+          <h2 className="text-xl font-semibold mb-4">Generated Image</h2>
+          <OutputDisplay content={imageUrl} type="image" />
+        </div>
+      )}
     </div>
   );
 };

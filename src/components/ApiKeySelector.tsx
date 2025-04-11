@@ -37,10 +37,13 @@ const ApiKeySelector: React.FC<ApiKeySelectorProps> = ({
   }, [providers]);
 
   const handleProviderChange = (value: string) => {
-    setSelectedProvider(value);
+    try {
+      setSelectedProvider(value);
+    } catch (error) {
+      console.error("Error changing provider:", error);
+      toast.error("Failed to change provider. Please try again.");
+    }
   };
-
-  const currentProvider = providers.find(provider => provider.id === selectedProvider);
 
   if (providers.length === 0) {
     return (
@@ -50,11 +53,22 @@ const ApiKeySelector: React.FC<ApiKeySelectorProps> = ({
     );
   }
 
+  const currentProvider = providers.find(provider => provider.id === selectedProvider) || providers[0];
+
+  // Special handling for Hugging Face in image generation
+  const isImageGeneration = providers.some(p => p.id === "huggingface" && !["text", "voice"].includes(p.id));
+  const huggingFaceDescription = isImageGeneration 
+    ? "Access to Stable Diffusion and other image generation models."
+    : currentProvider.description;
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="provider-select">Select AI Provider</Label>
-        <Select value={selectedProvider} onValueChange={handleProviderChange}>
+        <Select 
+          value={selectedProvider || providers[0].id} 
+          onValueChange={handleProviderChange}
+        >
           <SelectTrigger id="provider-select" className="w-full">
             <SelectValue placeholder="Select AI provider" />
           </SelectTrigger>
@@ -69,26 +83,26 @@ const ApiKeySelector: React.FC<ApiKeySelectorProps> = ({
       </div>
 
       {currentProvider && (
-        <APIKeyInput
-          serviceName={currentProvider.name}
-          apiKeyName={`${currentProvider.id}_api_key`}
-          onSave={(apiKey) => onSaveApiKey(currentProvider.id, apiKey)}
-          currentKey={getApiKey(currentProvider.id)}
-        />
-      )}
+        <>
+          <APIKeyInput
+            serviceName={currentProvider.name}
+            apiKeyName={`${currentProvider.id}_api_key`}
+            onSave={(apiKey) => onSaveApiKey(currentProvider.id, apiKey)}
+            currentKey={getApiKey(currentProvider.id)}
+          />
 
-      {currentProvider && (
-        <div className="text-sm text-muted-foreground">
-          <p>{currentProvider.description}</p>
-          <a 
-            href={currentProvider.docsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline mt-2 inline-block"
-          >
-            Get {currentProvider.name} API Key
-          </a>
-        </div>
+          <div className="text-sm text-muted-foreground">
+            <p>{currentProvider.id === "huggingface" ? huggingFaceDescription : currentProvider.description}</p>
+            <a 
+              href={currentProvider.docsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline mt-2 inline-block"
+            >
+              Get {currentProvider.name} API Key
+            </a>
+          </div>
+        </>
       )}
     </div>
   );
